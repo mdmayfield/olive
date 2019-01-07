@@ -12,6 +12,9 @@ class QLabel;
 class QProgressBar;
 class QGroupBox;
 
+#define H264_ENC_X264 0
+#define H264_ENC_QSV 1
+
 class ExportDialog : public QDialog
 {
 	Q_OBJECT
@@ -20,7 +23,10 @@ public:
 	~ExportDialog();
 	QString export_error;
 
+	// h264 advanced options
+	int h264_encoder;
 	QString x264_preset;
+	bool x264_opencl_lookahead;
 
 private slots:
 	void format_changed(int index);

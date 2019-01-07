@@ -90,7 +90,10 @@ ExportDialog::ExportDialog(QWidget *parent) :
 	format_strings[FORMAT_WEBM] = "WebM";
 	format_strings[FORMAT_WMV] = "Windows Media";
 
+	// h264 advanced settings
+	h264_encoder = H264_ENC_X264;
 	x264_preset = "medium";
+	x264_opencl_lookahead = false;
 
 	for (int i=0;i<FORMAT_SIZE;i++) {
 		formatCombobox->addItem(format_strings[i]);
@@ -326,8 +329,6 @@ void ExportDialog::render_thread_finished() {
 		QMessageBox::critical(this, "Export Failed", "Export failed - " + export_error, QMessageBox::Ok);
 	}
 	prep_ui_for_render(false);
-	panel_sequence_viewer->viewer_widget->makeCurrent();
-	panel_sequence_viewer->viewer_widget->initializeGL();
 	update_ui(false);
 	if (progressBar->value() == 100) accept();
 }

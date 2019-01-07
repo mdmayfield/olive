@@ -16,6 +16,8 @@ extern "C" {
 	#include <libavutil/opt.h>
 	#include <libswresample/swresample.h>
 	#include <libswscale/swscale.h>
+	#include <libavutil/hwcontext.h>
+	#include <libavutil/hwcontext_qsv.h>
 }
 
 #include <QApplication>
@@ -25,6 +27,24 @@ extern "C" {
 #include <QPainter>
 
 ExportThread::ExportThread() : continueEncode(true) {
+	fmt_ctx = NULL;
+	video_stream = NULL;
+	vcodec = NULL;
+	vcodec_ctx = NULL;
+	video_frame = NULL;
+	sws_frame = NULL;
+	sws_ctx = NULL;
+	audio_stream = NULL;
+	acodec = NULL;
+	audio_frame = NULL;
+	swr_frame = NULL;
+	acodec_ctx = NULL;
+	swr_ctx = NULL;
+	hw_device_ref = NULL;
+
+	video_pkt_alloc = false;
+	audio_pkt_alloc = false;
+
 	surface.create();
 }
 
@@ -61,7 +81,26 @@ bool ExportThread::setupVideo() {
 	if (!video_enabled) return true;
 
 	// find video encoder
-	vcodec = avcodec_find_encoder((enum AVCodecID) video_codec);
+	if (video_codec == AV_CODEC_ID_H264) {
+		switch (ed->h264_encoder) {
+		case H264_ENC_QSV:
+			if ((ret = av_hwdevice_ctx_create(&hw_device_ref, AV_HWDEVICE_TYPE_QSV,
+									   "auto", NULL, 0)) < 0) {
+				char err_str[50];
+				av_strerror(ret, err_str, sizeof(err_str));
+				dout << "[ERROR] Could not open QSV hardware device -" << ret;
+				ed->export_error = "could not open QSV hardware device (" + QString::number(ret) + " - " + err_str + ")";
+				return false;
+			}
+
+			vcodec = avcodec_find_encoder_by_name("h264_qsv");
+			break;
+		default:
+			vcodec = avcodec_find_encoder((enum AVCodecID) video_codec);
+		}
+	} else {
+		vcodec = avcodec_find_encoder((enum AVCodecID) video_codec);
+	}
 	if (!vcodec) {
 		dout << "[ERROR] Could not find video encoder";
 		ed->export_error = "could not video encoder for " + QString::number(video_codec);
@@ -102,12 +141,12 @@ bool ExportThread::setupVideo() {
 		vcodec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 	}
 
-	if (vcodec_ctx->codec_id == AV_CODEC_ID_H264) {
+	if (vcodec_ctx->codec_id == AV_CODEC_ID_H264 && ed->h264_encoder == H264_ENC_X264) {
 		/*char buffer[50];
 		itoa(vcodec_ctx, buffer, 10);*/
 
 		av_opt_set(vcodec_ctx->priv_data, "preset", ed->x264_preset.toUtf8(), AV_OPT_SEARCH_CHILDREN);
-		//av_opt_set(vcodec_ctx->priv_data, "x264opts", "opencl", AV_OPT_SEARCH_CHILDREN);
+		if (ed->x264_opencl_lookahead) av_opt_set(vcodec_ctx->priv_data, "x264opts", "opencl", AV_OPT_SEARCH_CHILDREN);
 
 		switch (video_compression_type) {
 		case COMPRESSION_TYPE_CFR:
@@ -390,12 +429,17 @@ void ExportThread::run() {
 		frame_count++;
 	}
 
+	if (continueEncode) {
+		video_pkt_alloc = true;
+		audio_pkt_alloc = true;
+	}
+
 	panel_sequence_viewer->viewer_widget->default_fbo = NULL;
 	rendering = false;
 
 	fbo.release();
 
-	if (audio_enabled) {
+	if (continueEncode && audio_enabled) {
 		// flush swresample
 		do {
 			swr_convert_frame(swr_ctx, swr_frame, NULL);
@@ -427,19 +471,21 @@ void ExportThread::run() {
 
 	avio_closep(&fmt_ctx->pb);
 
-	if (video_enabled) {
+	if (video_pkt_alloc) av_packet_unref(&video_pkt);
+	if (video_frame != NULL) av_frame_free(&video_frame);
+	if (vcodec_ctx != NULL) {
 		avcodec_close(vcodec_ctx);
-		av_packet_unref(&video_pkt);
-		av_frame_free(&video_frame);
 		avcodec_free_context(&vcodec_ctx);
 	}
 
-	if (audio_enabled) {
+	if (audio_pkt_alloc) av_packet_unref(&audio_pkt);
+	if (audio_frame != NULL) av_frame_free(&audio_frame);
+	if (acodec_ctx != NULL) {
 		avcodec_close(acodec_ctx);
-		av_packet_unref(&audio_pkt);
-		av_frame_free(&audio_frame);
 		avcodec_free_context(&acodec_ctx);
 	}
+
+	if (hw_device_ref != NULL) av_buffer_unref(&hw_device_ref);
 
 	avformat_free_context(fmt_ctx);
 
@@ -455,7 +501,9 @@ void ExportThread::run() {
 	delete [] c_filename;
 
 	panel_sequence_viewer->viewer_widget->context()->doneCurrent();
-	panel_sequence_viewer->viewer_widget->context()->moveToThread(qApp->thread());
+	dout << "moving to back to main thread...";
+	panel_sequence_viewer->viewer_widget->context()->moveToThread(QApplication::instance()->thread());
+	dout << "finished moving to thread...";
 
 	rendering = false;
 }

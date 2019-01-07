@@ -117,11 +117,8 @@ SOURCES += \
     ui/clickablelabel.cpp \
     project/keyframe.cpp \
     ui/rectangleselect.cpp \
-<<<<<<< HEAD
-    dialogs/exportadvancedvideo.cpp
-=======
+    dialogs/exportadvancedvideo.cpp \
     dialogs/actionsearch.cpp
->>>>>>> 952c67972b9e19f5f47236a03dd5a1dae61230a8
 
 HEADERS += \
         mainwindow.h \
@@ -208,11 +205,8 @@ HEADERS += \
     ui/clickablelabel.h \
     project/keyframe.h \
     ui/rectangleselect.h \
-<<<<<<< HEAD
-    dialogs/exportadvancedvideo.h
-=======
+    dialogs/exportadvancedvideo.h \
     dialogs/actionsearch.h
->>>>>>> 952c67972b9e19f5f47236a03dd5a1dae61230a8
 
 FORMS +=
 
