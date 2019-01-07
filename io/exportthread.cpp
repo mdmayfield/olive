@@ -106,7 +106,7 @@ bool ExportThread::setupVideo() {
 		/*char buffer[50];
 		itoa(vcodec_ctx, buffer, 10);*/
 
-		//av_opt_set(vcodec_ctx->priv_data, "preset", "fast", AV_OPT_SEARCH_CHILDREN);
+		av_opt_set(vcodec_ctx->priv_data, "preset", ed->x264_preset.toUtf8(), AV_OPT_SEARCH_CHILDREN);
 		//av_opt_set(vcodec_ctx->priv_data, "x264opts", "opencl", AV_OPT_SEARCH_CHILDREN);
 
 		switch (video_compression_type) {

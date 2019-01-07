@@ -116,7 +116,8 @@ SOURCES += \
     ui/keyframedrawing.cpp \
     ui/clickablelabel.cpp \
     project/keyframe.cpp \
-    ui/rectangleselect.cpp
+    ui/rectangleselect.cpp \
+    dialogs/exportadvancedvideo.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -202,7 +203,8 @@ HEADERS += \
     ui/keyframedrawing.h \
     ui/clickablelabel.h \
     project/keyframe.h \
-    ui/rectangleselect.h
+    ui/rectangleselect.h \
+    dialogs/exportadvancedvideo.h
 
 FORMS +=
 

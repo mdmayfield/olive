@@ -20,6 +20,8 @@ public:
 	~ExportDialog();
 	QString export_error;
 
+	QString x264_preset;
+
 private slots:
 	void format_changed(int index);
 	void export_action();
@@ -28,6 +30,8 @@ private slots:
 	void render_thread_finished();
 	void vcodec_changed(int index);
 	void comp_type_changed(int index);
+
+	void open_advanced_video();
 
 private:
 	QVector<QString> format_strings;
@@ -57,6 +61,7 @@ private:
 	QGroupBox* videoGroupbox;
 	QGroupBox* audioGroupbox;
 	QComboBox* compressionTypeCombobox;
+	QPushButton* advanced_video_settings;
 };
 
 #endif // EXPORTDIALOG_H

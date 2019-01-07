@@ -24,6 +24,7 @@
 #include "io/exportthread.h"
 #include "playback/playback.h"
 #include "mainwindow.h"
+#include "dialogs/exportadvancedvideo.h"
 
 extern "C" {
 	#include <libavformat/avformat.h>
@@ -88,6 +89,8 @@ ExportDialog::ExportDialog(QWidget *parent) :
 	format_strings[FORMAT_WAV] = "WAVE Audio";
 	format_strings[FORMAT_WEBM] = "WebM";
 	format_strings[FORMAT_WMV] = "Windows Media";
+
+	x264_preset = "medium";
 
 	for (int i=0;i<FORMAT_SIZE;i++) {
 		formatCombobox->addItem(format_strings[i]);
@@ -543,10 +546,14 @@ void ExportDialog::vcodec_changed(int index) {
 		compressionTypeCombobox->addItem("Quality-based (Constant Rate Factor)", COMPRESSION_TYPE_CFR);
 //		compressionTypeCombobox->addItem("File size-based (Two-Pass)", COMPRESSION_TYPE_TARGETSIZE);
 //		compressionTypeCombobox->addItem("Average bitrate (Two-Pass)", COMPRESSION_TYPE_TARGETBR);
+
+		advanced_video_settings->setEnabled(true);
 	} else {
 		compressionTypeCombobox->addItem("Constant Bitrate", COMPRESSION_TYPE_CBR);
 		compressionTypeCombobox->setCurrentIndex(0);
 		compressionTypeCombobox->setEnabled(false);
+
+		advanced_video_settings->setEnabled(false);
 	}
 }
 
@@ -571,6 +578,11 @@ void ExportDialog::comp_type_changed(int) {
 		videobitrateSpinbox->setValue(100);
 		break;
 	}
+}
+
+void ExportDialog::open_advanced_video() {
+	ExportAdvancedVideo eav(this, format_vcodecs.at(vcodecCombobox->currentIndex()));
+	eav.exec();
 }
 
 void ExportDialog::setup_ui() {
@@ -637,6 +649,11 @@ void ExportDialog::setup_ui() {
 	videobitrateSpinbox->setMaximum(100);
 	videobitrateSpinbox->setValue(2);
 	videoGridLayout->addWidget(videobitrateSpinbox, 5, 1, 1, 1);
+
+	advanced_video_settings = new QPushButton("Advanced");
+	advanced_video_settings->setEnabled(false);
+	connect(advanced_video_settings, SIGNAL(clicked(bool)), this, SLOT(open_advanced_video()));
+	videoGridLayout->addWidget(advanced_video_settings, 6, 1);
 
 	verticalLayout->addWidget(videoGroupbox);
 
